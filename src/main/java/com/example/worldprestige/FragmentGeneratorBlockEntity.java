@@ -26,7 +26,8 @@ import net.minecraftforge.items.IItemHandler;
  *
  * 「入力上限なし」モード(GUI で切り替え): 入力速度の設定を無視して、受け取れるだけ受け取る。
  * さらに、隣接する FE の供給元(エネルギーキューブ・バッテリー等)から、こちらから吸い出す。
- * Forge Energy は 1 回の受け渡しが int までだが、吸い出しは 1 tick に何度も繰り返すので、その上限も超えられる。
+ * Forge Energy は 1 回の受け渡しが int(約 21 億)までなので、吸い出しを 1 tick に何度も繰り返してその上限を超える。
+ * 繰り返し回数と時間の上限は config (pullLoopsPerTick / pullTimeBudgetMs)。
  * (ケーブル経由の場合、ケーブル側の転送量の上限と FE 変換の都合は変えられない)
  */
 public class FragmentGeneratorBlockEntity extends BlockEntity {
@@ -35,9 +36,7 @@ public class FragmentGeneratorBlockEntity extends BlockEntity {
     public static final int DEFAULT_SPEED = 50_000;
     /** 機械の中に溜められる World Fragment の数。満杯になると電力を受け取らなくなる。 */
     public static final int MAX_STORED_FRAGMENTS = 1_000_000;
-    /** 無制限モードで、隣接する供給元 1 つから 1 tick に吸い出しを繰り返す最大回数(1 回は最大約 21 億 FE)。 */
-    public static final int PULL_LOOPS = 256;
-    // 初期の必要電力・増加率は config/worldprestige-common.toml (WorldPrestigeConfig)
+    // 初期の必要電力・増加率・吸い出し回数/時間の上限は config/worldprestige-common.toml (WorldPrestigeConfig)
     // ================================================================
 
     private long speed = DEFAULT_SPEED;  // 1 tick に受け取れる上限 (FE/t)。long なので int の上限(約 21 億)を超えて設定できる
@@ -133,20 +132,27 @@ public class FragmentGeneratorBlockEntity extends BlockEntity {
         return ((a ^ r) & (b ^ r)) < 0 ? Long.MAX_VALUE : r;
     }
 
-    /** 隣接する 6 方向の供給元から、extractEnergy を繰り返して電力を吸い出す。 */
+    /**
+     * 隣接する 6 方向の供給元から、extractEnergy を繰り返して電力を吸い出す。
+     * 1 回で最大 int(約 21 億)なので、供給元が空になるか、回数/時間の上限(config)に達するまで繰り返す。
+     */
     private void pullFromNeighbors() {
         if (level == null) return;
+        final int maxLoops = WorldPrestigeConfig.PULL_LOOPS.get();
+        final long deadline = System.nanoTime() + WorldPrestigeConfig.PULL_TIME_BUDGET_MS.get() * 1_000_000L;
         for (Direction d : Direction.values()) {
             BlockEntity neighbor = level.getBlockEntity(worldPosition.relative(d));
             if (neighbor == null || neighbor instanceof FragmentGeneratorBlockEntity) continue;
             neighbor.getCapability(ForgeCapabilities.ENERGY, d.getOpposite()).ifPresent(source -> {
                 if (!source.canExtract()) return;
-                for (int i = 0; i < PULL_LOOPS; i++) {
+                for (int i = 0; i < maxLoops; i++) {
                     int got = source.extractEnergy(Integer.MAX_VALUE, false);
                     if (got <= 0) break;
                     pending = addSaturated(pending, got);
+                    if ((i & 63) == 63 && System.nanoTime() > deadline) break;   // 底なしの供給元でサーバーが重くならないように
                 }
             });
+            if (System.nanoTime() > deadline) break;
         }
     }
 

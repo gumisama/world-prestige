@@ -239,7 +239,7 @@ public int cost(int level) {
 - `FragmentGeneratorScreen` : 設定 GUI(クライアント専用)。入力欄に数字を入れて「設定」か Enter。0.5 秒ごとに状態を取り直す。
 - 通信 : `GeneratorActionPacket`(クライアント→サーバー: 速度設定/取り出し/状態要求)、`GeneratorPacket`(サーバー→クライアント: 状態)。サーバー側で距離(8 ブロック以内)と BlockEntity の存在を確認している。
 - 生成数は `WorldPrestigeConfig.affordable()` で一括計算(1 tick に何個でも作れる)。機械の中の上限は `MAX_STORED_FRAGMENTS`。GUI の「ポイントに変換」は `convertToPoints()`、「実測入力」は直近 20 tick の平均(`measured`)。
-- **無制限モード**(`unlimited`、GUI のボタン): `receiveEnergy` が速度の上限を見ずに全部受け取り、`pullFromNeighbors()` が隣接 6 方向の供給元へ `extractEnergy(Integer.MAX_VALUE)` を最大 `PULL_LOOPS` 回/tick 繰り返して吸い出す。Forge Energy の 1 回 = int までの上限は、この繰り返しで超える。ケーブルは供給元ではない(`canExtract` が false)ので、吸い出せるのは隣接するキューブ・バッテリー・発電機など。
+- **無制限モード**(`unlimited`、GUI のボタン): `receiveEnergy` が速度の上限を見ずに全部受け取り、`pullFromNeighbors()` が隣接 6 方向の供給元へ `extractEnergy(Integer.MAX_VALUE)` をconfig の pullLoopsPerTick回/tick(時間はpullTimeBudgetMs で制限)繰り返して吸い出す。Forge Energy の 1 回 = int までの上限は、この繰り返しで超える。ケーブルは供給元ではない(`canExtract` が false)ので、吸い出せるのは隣接するキューブ・バッテリー・発電機など。
 - 電力は **Forge Energy** の Capability で受ける。Mekanism のケーブルも FE の機械に接続できる(Mekanism 側の FE 変換設定に従う)。
 - `WorldFragmentItem` : サーバー側だけで処理。ポイントは共通なので、使ったのが誰でも全員のポイントが増える。
 - 新しい物を足すときは、`ModRegistry` に登録 + `assets` のモデル/言語ファイル + (ブロックなら)blockstate・ルートテーブル・ツールタグが要る。

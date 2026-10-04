@@ -10,6 +10,8 @@ public final class WorldPrestigeConfig {
     public static final ForgeConfigSpec SPEC;
     public static final ForgeConfigSpec.LongValue INITIAL_ENERGY_COST;
     public static final ForgeConfigSpec.DoubleValue COST_GROWTH_PERCENT;
+    public static final ForgeConfigSpec.IntValue PULL_LOOPS;
+    public static final ForgeConfigSpec.IntValue PULL_TIME_BUDGET_MS;
 
     /** 計算結果の上限(オーバーフロー防止)。 */
     private static final long MAX_COST = 4_000_000_000_000_000_000L;
@@ -24,6 +26,15 @@ public final class WorldPrestigeConfig {
                 .comment("How many percent the cost grows after EACH World Fragment is made (world-wide, all generators share it).",
                         "0 = the cost never grows. 1.0 = +1% per fragment (compound).")
                 .defineInRange("costGrowthPercent", 1.0, 0.0, 1000.0);
+        PULL_LOOPS = b
+                .comment("Unlimited mode only: max number of extract calls per adjacent energy source per tick.",
+                        "One call moves at most ~2.1 billion FE (the int limit of Forge Energy), so this is the multiplier that beats the limit.",
+                        "The loop stops early when the source is empty. Raise it to pull more from huge or bottomless sources.")
+                .defineInRange("pullLoopsPerTick", 20_000, 1, 10_000_000);
+        PULL_TIME_BUDGET_MS = b
+                .comment("Unlimited mode only: time limit (milliseconds) for ALL pulling done by one generator in one tick.",
+                        "Protects the server from lag when a source never runs dry. Raise it to pull more; lower it if TPS drops.")
+                .defineInRange("pullTimeBudgetMs", 5, 1, 1000);
         b.pop();
         SPEC = b.build();
     }
