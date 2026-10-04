@@ -30,13 +30,14 @@ public class FragmentGeneratorScreen extends Screen {
         this.data = newData;
         if (limitButton != null) limitButton.setMessage(limitLabel());
         if (autoButton != null) autoButton.setMessage(autoLabel());
+        if (autoButton != null) autoButton.active = data.autoUnlocked();
     }
 
     private Component limitLabel() {
         return Component.literal(data.unlimited() ? "入力上限: なし(無制限)  ← 押すと上限ありに戻す" : "入力上限: あり  ← 押すと無制限にする");
     }
     private Component autoLabel() {
-        return Component.literal(data.auto() ? "自動変換: オン" : "自動変換: オフ");
+        return Component.literal(!data.autoUnlocked() ? "自動変換: 未解放" : data.auto() ? "自動変換: オン" : "自動変換: オフ");
     }
 
     @Override protected void init() {
@@ -58,6 +59,7 @@ public class FragmentGeneratorScreen extends Screen {
                 b -> send(PrestigeNetwork.ACTION_CONVERT, 0)).bounds(x, y + 135, 108, 20).build());
         autoButton = Button.builder(autoLabel(),
                 b -> send(PrestigeNetwork.ACTION_SET_AUTO, data.auto() ? 0 : 1)).bounds(x + 112, y + 135, 108, 20).build();
+        autoButton.active = data.autoUnlocked();
         addRenderableWidget(autoButton);
         addRenderableWidget(Button.builder(Component.literal("World Fragment をアイテムで取り出す"),
                 b -> send(PrestigeNetwork.ACTION_TAKE, 0)).bounds(x, y + 160, 220, 20).build());

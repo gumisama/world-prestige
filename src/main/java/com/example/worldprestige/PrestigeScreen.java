@@ -39,7 +39,7 @@ public class PrestigeScreen extends Screen {
 
     private PrestigeNetwork.StatePacket data;
     private double scroll;
-    
+
     public PrestigeScreen(PrestigeNetwork.StatePacket data) {
         super(Component.literal("World Prestige"));
         this.data = data;
@@ -71,6 +71,8 @@ public class PrestigeScreen extends Screen {
         return u.ordinal() < lv.length ? lv[u.ordinal()] : 0;
     }
 
+    private boolean maxed(Upgrade u) { return u.maxLevel() > 0 && levelOf(u) >= u.maxLevel(); }
+
     private static Item modItem(String path, Item fallback) {
         Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("mekanism", path));
         return item == null || item == Items.AIR ? fallback : item;
@@ -82,6 +84,7 @@ public class PrestigeScreen extends Screen {
             case FURNACE -> Items.FURNACE;
             case MACHINE -> modItem("enrichment_chamber", Items.BLAST_FURNACE);
             case MULTIBLOCK -> modItem("steel_casing", Items.IRON_BLOCK);
+            case AUTO_CONVERT -> Items.HOPPER;
             default -> Items.REDSTONE;
         };
         return new ItemStack(item);
@@ -132,11 +135,12 @@ public class PrestigeScreen extends Screen {
         }
         return super.mouseScrolled(mx, my, delta);
     }
+
     @Override public boolean mouseClicked(double mx, double my, int button) {
         if (button == 0) {
             Upgrade hit = upgradeAt(mx, my);
             if (hit != null) {
-                if (data.points() >= hit.cost(levelOf(hit))) {   // 表示上の目安。本当の判定はサーバー側
+                if (!maxed(hit) && data.points() >= hit.cost(levelOf(hit))) {   // 表示上の目安。本当の判定はサーバー側
                     minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                     PrestigeNetwork.CHANNEL.sendToServer(new PrestigeNetwork.BuyPacket(hit.id()));
                 }
@@ -152,9 +156,9 @@ public class PrestigeScreen extends Screen {
         renderBackground(g);
         int wx = winX(), wy = winY();
         int ix = wx + IN_X, iy = wy + IN_Y;
-
         scroll = Math.min(scroll, maxScroll());
         g.enableScissor(ix, iy, ix + IN_W, iy + IN_H);
+
         // 背景タイル(16x16 の石)
         for (int ty = 0; ty < IN_H; ty += 16) {
             for (int tx = 0; tx < IN_W; tx += 16) {
@@ -191,9 +195,11 @@ public class PrestigeScreen extends Screen {
             boolean ok = data.points() >= cost;
             g.drawString(font, u.displayName(), x + NODE + 6, y + 1, 0xFFFFFF);
             g.drawString(font, u.effectText() + "  Lv." + lv + "(適用" + activeOf(u) + ")", x + NODE + 6, y + 10, 0xAAAAAA);
-            g.drawString(font, "次 " + cost + "pt", x + NODE + 6, y + 19, ok ? 0x55FF55 : 0xFF5555);
+            g.drawString(font, maxed(u) ? "購入済み" : "次 " + cost + "pt", x + NODE + 6, y + 19, maxed(u) || ok ? 0x55FF55 : 0xFF5555);
         }
+
         g.disableScissor();
+
         // ウィンドウ枠と上部の文字
         g.blit(WINDOW, wx, wy, 0, 0, WIN_W, WIN_H);
         g.drawString(font, "World Prestige", wx + 8, wy + 6, 4210752, false);
@@ -219,6 +225,9 @@ public class PrestigeScreen extends Screen {
         int lv = levelOf(u);
         int cost = u.cost(lv);
         boolean ok = data.points() >= cost;
+        if (maxed(u)) return List.of(Component.literal(u.displayName()),
+                Component.literal("購入済み(最大レベル)").withStyle(ChatFormatting.GREEN),
+                Component.literal("購入分は次のワールドリセット後に適用").withStyle(ChatFormatting.DARK_GRAY));
         List<Component> lines = new ArrayList<>();
         lines.add(Component.literal(u.displayName()));
         lines.add(Component.literal("効果: " + u.effectText() + " / Lv").withStyle(ChatFormatting.GRAY));

@@ -63,6 +63,7 @@ public final class SharedPrestige {
     /** 購入。ポイントが足りなければ false。レベルに上限は無い。 */
     public static boolean purchase(Upgrade u) {
         int level = levels[u.ordinal()];
+        if (u.maxLevel() > 0 && level >= u.maxLevel()) return false;
         int cost = u.cost(level);
         if (points < cost) return false;
         points -= cost;

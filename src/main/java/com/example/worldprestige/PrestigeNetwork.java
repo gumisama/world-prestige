@@ -13,7 +13,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class PrestigeNetwork {
     /** パケットの形やアップグレードの数を変えたら上げる(クライアントとサーバーの版が違うと接続拒否される)。 */
-    private static final String VERSION = "9";
+    private static final String VERSION = "10";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(WorldPrestige.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
     private static int id;
@@ -84,9 +84,10 @@ public final class PrestigeNetwork {
                     b.writeBoolean(m.open());
                     b.writeLong(m.measured());
                     b.writeBoolean(m.auto());
+                    b.writeBoolean(m.autoUnlocked());
                 },
                 b -> new GeneratorPacket(b.readBlockPos(), b.readLong(), b.readLong(), b.readLong(),
-                        b.readVarInt(), b.readLong(), b.readBoolean(), b.readBoolean(), b.readLong(), b.readBoolean()),
+                        b.readVarInt(), b.readLong(), b.readBoolean(), b.readBoolean(), b.readLong(), b.readBoolean(), b.readBoolean()),
                 (m, c) -> {
                     c.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(
                             Dist.CLIENT, () -> () -> PrestigeClient.receiveGenerator(m)));
@@ -122,7 +123,7 @@ public final class PrestigeNetwork {
             server.getPlayerList().broadcastSystemMessage(Component.literal("ワールド強化: " + u.displayName()
                     + " Lv." + SharedPrestige.getLevel(u) + " (購入: " + p.getName().getString() + ") ※適用はワールドリセット後"), false);
         } else {
-            p.sendSystemMessage(Component.literal("購入できません。ポイントが足りません。"));
+            p.sendSystemMessage(Component.literal("購入できません(ポイント不足、または購入済み)。"));
         }
         syncAll(server);   // ポイント・レベルは共通なので全員の GUI を更新
     }
@@ -181,7 +182,7 @@ public final class PrestigeNetwork {
     public record ResetPromptPacket() {}
     public record ResetExecutePacket() {}
     public record GeneratorActionPacket(BlockPos pos, int action, long value) {}
-    public record GeneratorPacket(BlockPos pos, long speed, long progress, long cost, int stored, long made, boolean unlimited, boolean open, long measured, boolean auto) {}
+    public record GeneratorPacket(BlockPos pos, long speed, long progress, long cost, int stored, long made, boolean unlimited, boolean open, long measured, boolean auto, boolean autoUnlocked) {}
 
     public record BuyPacket(String upgrade) {}
     public record StatePacket(int points, int laps, boolean open, int[] levels, int[] active) {}

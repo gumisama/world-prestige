@@ -122,7 +122,7 @@ public class FragmentGeneratorBlockEntity extends BlockEntity {
                 setChanged();
             }
         }
-        if (autoConvert && fragments > 0 && level != null && level.getServer() != null) convertToPoints(level.getServer());
+        if (autoConvert && autoUnlocked() && fragments > 0 && level != null && level.getServer() != null) convertToPoints(level.getServer());
     }
 
     // ---- GUI から呼ばれる ----
@@ -161,8 +161,10 @@ public class FragmentGeneratorBlockEntity extends BlockEntity {
         unlimited = value;
         setChanged();
     }
+    private static boolean autoUnlocked() { return SharedPrestige.getActiveLevel(Upgrade.AUTO_CONVERT) > 0; }
+
     public void setAutoConvert(boolean value) {
-        autoConvert = value;
+        autoConvert = value && autoUnlocked();
         setChanged();
     }
 
@@ -199,7 +201,7 @@ public class FragmentGeneratorBlockEntity extends BlockEntity {
     public PrestigeNetwork.GeneratorPacket snapshot(boolean open) {
         long made = SharedPrestige.getFragmentsMade();
         return new PrestigeNetwork.GeneratorPacket(worldPosition, speed, progress,
-                WorldPrestigeConfig.cost(made), fragments, made, unlimited, open, measured, autoConvert);
+                WorldPrestigeConfig.cost(made), fragments, made, unlimited, open, measured, autoConvert, autoUnlocked());
     }
 
     public void dropContents(Level level, BlockPos pos) {
