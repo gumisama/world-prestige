@@ -35,6 +35,7 @@ public class WorldPrestige {
     public void onRegisterCommands(RegisterCommandsEvent event) {
         event.getDispatcher().register(
                 Commands.literal("prestige")
+                        .requires(source -> source.hasPermission(2))
                         .executes(WorldPrestige::openGui)
                         .then(Commands.literal("gui")
                                 .executes(WorldPrestige::openGui))

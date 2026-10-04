@@ -47,7 +47,7 @@ public class FragmentGeneratorBlockEntity extends BlockEntity {
     private int windowTicks;
     private long measured;               // 直近 20 tick の平均入力 (FE/t)。GUI に表示するだけ
     private boolean unlimited;           // true: 入力速度の上限を無視する(受け取れるだけ受け取り、隣接する供給元からも吸い出す)
-
+    private boolean autoConvert;   // true: 作ったフラグメントを、すぐ Prestige Point に変える
     private final IEnergyStorage energy = new IEnergyStorage() {
         @Override public int receiveEnergy(int max, boolean simulate) {
             if (fragments >= MAX_STORED_FRAGMENTS) return 0;
@@ -122,6 +122,7 @@ public class FragmentGeneratorBlockEntity extends BlockEntity {
                 setChanged();
             }
         }
+        if (autoConvert && fragments > 0 && level != null && level.getServer() != null) convertToPoints(level.getServer());
     }
 
     // ---- GUI から呼ばれる ----
@@ -160,6 +161,10 @@ public class FragmentGeneratorBlockEntity extends BlockEntity {
         unlimited = value;
         setChanged();
     }
+    public void setAutoConvert(boolean value) {
+        autoConvert = value;
+        setChanged();
+    }
 
     public void setSpeed(long value) {
         speed = Math.max(0L, value);
@@ -194,7 +199,7 @@ public class FragmentGeneratorBlockEntity extends BlockEntity {
     public PrestigeNetwork.GeneratorPacket snapshot(boolean open) {
         long made = SharedPrestige.getFragmentsMade();
         return new PrestigeNetwork.GeneratorPacket(worldPosition, speed, progress,
-                WorldPrestigeConfig.cost(made), fragments, made, unlimited, open, measured);
+                WorldPrestigeConfig.cost(made), fragments, made, unlimited, open, measured, autoConvert);
     }
 
     public void dropContents(Level level, BlockPos pos) {
@@ -224,6 +229,7 @@ public class FragmentGeneratorBlockEntity extends BlockEntity {
     }
 
     @Override protected void saveAdditional(CompoundTag tag) {
+        tag.putBoolean("AutoConvert", autoConvert);
         super.saveAdditional(tag);
         tag.putLong("Speed", speed);
         tag.putLong("Progress", progress);
@@ -237,5 +243,6 @@ public class FragmentGeneratorBlockEntity extends BlockEntity {
         progress = Math.max(0L, tag.getLong("Progress"));
         unlimited = tag.getBoolean("Unlimited");
         fragments = Math.max(0, Math.min(MAX_STORED_FRAGMENTS, tag.getInt("Fragments")));
+        autoConvert = tag.getBoolean("AutoConvert");
     }
 }

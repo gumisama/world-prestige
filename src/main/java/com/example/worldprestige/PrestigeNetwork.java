@@ -13,7 +13,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class PrestigeNetwork {
     /** パケットの形やアップグレードの数を変えたら上げる(クライアントとサーバーの版が違うと接続拒否される)。 */
-    private static final String VERSION = "8";
+    private static final String VERSION = "9";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(WorldPrestige.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
     private static int id;
@@ -83,9 +83,10 @@ public final class PrestigeNetwork {
                     b.writeBoolean(m.unlimited());
                     b.writeBoolean(m.open());
                     b.writeLong(m.measured());
+                    b.writeBoolean(m.auto());
                 },
                 b -> new GeneratorPacket(b.readBlockPos(), b.readLong(), b.readLong(), b.readLong(),
-                        b.readVarInt(), b.readLong(), b.readBoolean(), b.readBoolean(), b.readLong()),
+                        b.readVarInt(), b.readLong(), b.readBoolean(), b.readBoolean(), b.readLong(), b.readBoolean()),
                 (m, c) -> {
                     c.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(
                             Dist.CLIENT, () -> () -> PrestigeClient.receiveGenerator(m)));
@@ -142,7 +143,7 @@ public final class PrestigeNetwork {
     }
 
     // ---------------- World Fragment Generator ----------------
-    public static final int ACTION_SET_SPEED = 0, ACTION_TAKE = 1, ACTION_REFRESH = 2, ACTION_SET_UNLIMITED = 3, ACTION_CONVERT = 4;
+    public static final int ACTION_SET_SPEED = 0, ACTION_TAKE = 1, ACTION_REFRESH = 2, ACTION_SET_UNLIMITED = 3, ACTION_CONVERT = 4, ACTION_SET_AUTO = 5;
 
     private static void handleGeneratorAction(ServerPlayer p, GeneratorActionPacket m) {
         BlockPos pos = m.pos();
@@ -161,6 +162,7 @@ public final class PrestigeNetwork {
                             + " (合計 " + SharedPrestige.getPoints() + ")"), true);
                 }
             }
+            case ACTION_SET_AUTO -> g.setAutoConvert(m.value() != 0);
             default -> { }
         }
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> p), g.snapshot(false));
@@ -179,7 +181,7 @@ public final class PrestigeNetwork {
     public record ResetPromptPacket() {}
     public record ResetExecutePacket() {}
     public record GeneratorActionPacket(BlockPos pos, int action, long value) {}
-    public record GeneratorPacket(BlockPos pos, long speed, long progress, long cost, int stored, long made, boolean unlimited, boolean open, long measured) {}
+    public record GeneratorPacket(BlockPos pos, long speed, long progress, long cost, int stored, long made, boolean unlimited, boolean open, long measured, boolean auto) {}
 
     public record BuyPacket(String upgrade) {}
     public record StatePacket(int points, int laps, boolean open, int[] levels, int[] active) {}
