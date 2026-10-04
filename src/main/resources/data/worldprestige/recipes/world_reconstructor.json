@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "conditions": [ { "type": "forge:mod_loaded", "modid": "mekanism" } ],
+  "pattern": ["ICI", "CFC", "ICI"],
+  "key": {
+    "I": { "item": "minecraft:iron_block" },
+    "C": { "item": "mekanism:steel_casing" },
+    "F": { "item": "worldprestige:world_fragment" }
+  },
+  "result": { "item": "worldprestige:world_reconstructor" }
+}

@@ -1,5 +1,6 @@
 {
   "itemGroup.worldprestige": "World Prestige",
   "block.worldprestige.fragment_generator": "ワールドフラグメント生成機",
+  "block.worldprestige.world_reconstructor": "ワールドリコンストラクター",
   "item.worldprestige.world_fragment": "ワールドフラグメント"
 }

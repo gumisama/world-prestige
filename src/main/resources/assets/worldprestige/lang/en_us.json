@@ -1,5 +1,6 @@
 {
   "itemGroup.worldprestige": "World Prestige",
   "block.worldprestige.fragment_generator": "World Fragment Generator",
+  "block.worldprestige.world_reconstructor": "World Reconstructor",
   "item.worldprestige.world_fragment": "World Fragment"
 }

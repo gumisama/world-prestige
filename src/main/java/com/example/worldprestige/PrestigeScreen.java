@@ -22,14 +22,17 @@ public class PrestigeScreen extends Screen {
 
     @Override protected void init() {
         Upgrade[] ups = Upgrade.values();
-        top = Math.max(10, height / 2 - (ups.length * 25 + 60) / 2);
+        top = Math.max(10, height / 2 - (ups.length * 25 + 85) / 2);
         int x = width / 2 - 150;
         int y = top + 32;
         for (Upgrade u : ups) {
             addUpgradeButton(u, x, y);
             y += 25;
         }
-        addRenderableWidget(Button.builder(Component.literal("閉じる"), b -> onClose()).bounds(x, y + 5, 300, 20).build());
+        y += 25; // Add some space between the last upgrade button and the reset button
+        addRenderableWidget(Button.builder(Component.literal("ワールドリセット"), b -> minecraft.setScreen(new ResetConfirmScreen())).bounds(x, y, 300, 20).build());
+        y += 25;
+        addRenderableWidget(Button.builder(Component.literal("閉じる"), b -> onClose()).bounds(x, y, 300, 20).build());
         hintY = y + 32;
     }
 
@@ -61,7 +64,7 @@ public class PrestigeScreen extends Screen {
         renderBackground(graphics);
         graphics.drawCenteredString(font, "Prestige Point(全員共通): " + data.points(), width / 2, top, 0xFFFFFF);
         graphics.drawCenteredString(font, "周回数: " + data.laps() + "  (強化はワールドリセット後から適用)", width / 2, top + 13, 0xAAAAAA);
-        graphics.drawCenteredString(font, "ワールドリセット: /prestige reset", width / 2, hintY, 0x777777);
+        graphics.drawCenteredString(font, "リセットは OP またはシングルプレイのホストのみ", width / 2, hintY, 0x777777);
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 

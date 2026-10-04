@@ -10,3 +10,4 @@ run/
 built/
 build_work/
 *.zip
+.aider*

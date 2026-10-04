@@ -35,6 +35,13 @@ public final class ModRegistry {
     public static final RegistryObject<Item> FRAGMENT_GENERATOR_ITEM = ITEMS.register("fragment_generator",
             () -> new BlockItem(FRAGMENT_GENERATOR.get(), new Item.Properties()));
 
+    /** 右クリックで強化 GUI を開くブロック。 */
+    public static final RegistryObject<Block> WORLD_RECONSTRUCTOR = BLOCKS.register("world_reconstructor",
+            () -> new WorldReconstructorBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL).strength(4.0f, 8.0f).requiresCorrectToolForDrops().sound(SoundType.METAL)));
+    public static final RegistryObject<Item> WORLD_RECONSTRUCTOR_ITEM = ITEMS.register("world_reconstructor",
+            () -> new BlockItem(WORLD_RECONSTRUCTOR.get(), new Item.Properties()));
+
     /** 使うと Prestige Point が増えるアイテム。 */
     public static final RegistryObject<Item> WORLD_FRAGMENT = ITEMS.register("world_fragment",
             () -> new WorldFragmentItem(new Item.Properties().rarity(Rarity.RARE)));
@@ -50,6 +57,7 @@ public final class ModRegistry {
                     .displayItems((params, output) -> {
                         output.accept(WORLD_FRAGMENT.get());
                         output.accept(FRAGMENT_GENERATOR_ITEM.get());
+                        output.accept(WORLD_RECONSTRUCTOR_ITEM.get());
                     })
                     .build());
 

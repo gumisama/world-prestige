@@ -7,9 +7,9 @@ package com.example.worldprestige;
  */
 public enum Upgrade {
     //          id           NBTキー              表示名              効果表示      基本価格 上昇幅 1Lvあたりの加速量
-    FURNACE    ("furnace",    "UpgradeFurnace",    "かまど類",          "速度+10%",   5,       2,     0.10),
-    MACHINE    ("machine",    "UpgradeMachine",    "Mekanism機械",      "速度+10%",   10,      4,     0.10),
-    MULTIBLOCK ("multiblock", "UpgradeMultiblock", "Mekマルチブロック", "速度+10%",   20,      8,     0.10);
+    FURNACE    ("furnace",    "UpgradeFurnace",    "かまど類",          "速度+1%",   1,       1,     0.01),
+    MACHINE    ("machine",    "UpgradeMachine",    "Mekanism機械",      "速度+1%",   2,      2,     0.01),
+    MULTIBLOCK ("multiblock", "UpgradeMultiblock", "Mekマルチブロック", "速度+1%",   5,      5,     0.01);
 
     private final String id;
     private final String nbtKey;

@@ -22,11 +22,8 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
-import java.util.UUID;
 
 /**
  * ワールドリセット。
@@ -60,7 +57,6 @@ public final class PrestigeReset {
     private static final String ARCHIVE_DIR = "prestige_archive";
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
 
-    private static final Map<UUID, Long> confirmations = new HashMap<>();
     private static volatile boolean resetPending;
     private static volatile Path worldRoot;
 
@@ -81,7 +77,6 @@ public final class PrestigeReset {
     /** /prestige reset : 確認 GUI(2 段階)を開かせる。実行は、GUI で「はい」を 2 回押したとき(confirmFromGui)。 */
     public static int request(CommandSourceStack source) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
-        confirmations.put(player.getUUID(), System.currentTimeMillis() + CONFIRM_MILLIS);
         PrestigeNetwork.openResetConfirm(player);
         return 1;
     }
@@ -89,10 +84,8 @@ public final class PrestigeReset {
     /** 確認 GUI の最後の「はい」が押されたとき(サーバー側で呼ばれる)。 */
     public static void confirmFromGui(ServerPlayer player) {
         MinecraftServer server = player.getServer();
-        if (server == null || !canUse(player.createCommandSourceStack())) return;
-        Long expires = confirmations.remove(player.getUUID());
-        if (expires == null || expires < System.currentTimeMillis()) {
-            player.sendSystemMessage(Component.literal("確認の有効期限が切れました。もう一度 /prestige reset を実行してください。"));
+        if (server == null || !canUse(player.createCommandSourceStack())) {
+            player.sendSystemMessage(Component.literal("リセットする権限がありません"));
             return;
         }
         resetPending = true;
@@ -107,7 +100,6 @@ public final class PrestigeReset {
         // シングルプレイではJVMが生きたままワールドを開き直すので、状態を必ず初期化する
         resetPending = false;
         worldRoot = null;
-        confirmations.clear();
     }
 
     @SubscribeEvent public static void onStopping(ServerStoppingEvent e) {
