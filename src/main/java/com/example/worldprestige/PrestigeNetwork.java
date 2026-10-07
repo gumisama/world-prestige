@@ -13,7 +13,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class PrestigeNetwork {
     /** パケットの形やアップグレードの数を変えたら上げる(クライアントとサーバーの版が違うと接続拒否される)。 */
-    private static final String VERSION = "10";
+    private static final String VERSION = "10." + Upgrade.values().length;
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(WorldPrestige.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
     private static int id;

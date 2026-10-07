@@ -8,18 +8,17 @@ import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * 進捗画面ふうの強化 GUI。左のルート(World Fragment)から、強化ごとのノードが枝分かれする。
- * ノードをクリックすると購入。ホバーで詳しい説明。クライアント専用。
+ * ノードにはアイコンとレベルだけを出し、説明はホバー(ツールチップ)にだけ出す。
+ * ノードをクリックすると購入。クライアント専用。
  * 見た目はバニラの進捗画面のテクスチャ(window / widgets / backgrounds)を借りている。
+ * 強化を増やしても、この画面の変更は不要(Upgrade.java に 1 行足すだけ)。
  */
 public class PrestigeScreen extends Screen {
     private static final ResourceLocation WINDOW = new ResourceLocation("textures/gui/advancements/window.png");
@@ -72,23 +71,6 @@ public class PrestigeScreen extends Screen {
     }
 
     private boolean maxed(Upgrade u) { return u.maxLevel() > 0 && levelOf(u) >= u.maxLevel(); }
-
-    private static Item modItem(String path, Item fallback) {
-        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("mekanism", path));
-        return item == null || item == Items.AIR ? fallback : item;
-    }
-
-    /** ノードに表示するアイコン。強化を増やしたらここにも足す(無ければ default)。 */
-    private static ItemStack iconOf(Upgrade u) {
-        Item item = switch (u) {
-            case FURNACE -> Items.FURNACE;
-            case MACHINE -> modItem("enrichment_chamber", Items.BLAST_FURNACE);
-            case MULTIBLOCK -> modItem("steel_casing", Items.IRON_BLOCK);
-            case AUTO_CONVERT -> Items.HOPPER;
-            default -> Items.REDSTONE;
-        };
-        return new ItemStack(item);
-    }
 
     // ---------------- ノードの位置 ----------------
 
@@ -183,19 +165,21 @@ public class PrestigeScreen extends Screen {
         drawFrame(g, rootX(), rootY(), 0, true);
         g.renderFakeItem(new ItemStack(ModRegistry.WORLD_FRAGMENT.get()), rootX() + 5, rootY() + 5);
 
-        // 強化ノードと文字
+        // 強化ノード(アイコンとレベルだけ。説明はホバー)
         for (int i = 0; i < ups.length; i++) {
             Upgrade u = ups[i];
             int lv = levelOf(u);
             int x = childX(), y = childY(i);
             int frame = lv >= CHALLENGE_LEVEL ? 26 : lv >= GOAL_LEVEL ? 52 : 0;
             drawFrame(g, x, y, frame, lv > 0);
-            g.renderFakeItem(iconOf(u), x + 5, y + 5);
-            int cost = u.cost(lv);
-            boolean ok = data.points() >= cost;
-            g.drawString(font, u.displayName(), x + NODE + 6, y + 1, 0xFFFFFF);
-            g.drawString(font, u.effectText() + "  Lv." + lv + "(適用" + activeOf(u) + ")", x + NODE + 6, y + 10, 0xAAAAAA);
-            g.drawString(font, maxed(u) ? "購入済み" : "次 " + cost + "pt", x + NODE + 6, y + 19, maxed(u) || ok ? 0x55FF55 : 0xFF5555);
+            g.renderFakeItem(u.icon(), x + 5, y + 5);
+            if (u.maxLevel() != 1 && lv > 0) {   // 1 回きりの強化はレベル表示なし
+                String s = String.valueOf(lv);
+                g.pose().pushPose();
+                g.pose().translate(0.0F, 0.0F, 200.0F);   // アイコンより手前に出す
+                g.drawString(font, s, x + NODE - 3 - font.width(s), y + NODE - 11, 0xFFFFFF, true);
+                g.pose().popPose();
+            }
         }
 
         g.disableScissor();
@@ -223,19 +207,26 @@ public class PrestigeScreen extends Screen {
 
     private List<Component> tooltipOf(Upgrade u) {
         int lv = levelOf(u);
-        int cost = u.cost(lv);
-        boolean ok = data.points() >= cost;
-        if (maxed(u)) return List.of(Component.literal(u.displayName()),
-                Component.literal("購入済み(最大レベル)").withStyle(ChatFormatting.GREEN),
-                Component.literal("購入分は次のワールドリセット後に適用").withStyle(ChatFormatting.DARK_GRAY));
         List<Component> lines = new ArrayList<>();
         lines.add(Component.literal(u.displayName()));
-        lines.add(Component.literal("効果: " + u.effectText() + " / Lv").withStyle(ChatFormatting.GRAY));
-        lines.add(Component.literal("購入済み Lv." + lv + " / 適用中 Lv." + activeOf(u)).withStyle(ChatFormatting.GRAY));
-        lines.add(Component.literal("次のレベル: " + cost + "pt").withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.RED));
-        lines.add(Component.literal("購入分は次のワールドリセット後に適用").withStyle(ChatFormatting.DARK_GRAY));
-        lines.add(Component.literal(ok ? "クリックで購入" : "ポイントが足りません")
-                .withStyle(ok ? ChatFormatting.YELLOW : ChatFormatting.RED));
+        lines.add(Component.literal(u.description()).withStyle(ChatFormatting.GRAY));
+        if (u.perLevel() > 0) lines.add(Component.literal("効果: " + u.effectText() + " / Lv").withStyle(ChatFormatting.GRAY));
+        if (u.maxLevel() == 1) {
+            lines.add(Component.literal(lv > 0 ? "購入済み" : "1 回のみ購入できる")
+                    .withStyle(lv > 0 ? ChatFormatting.GREEN : ChatFormatting.GRAY));
+        } else {
+            lines.add(Component.literal("購入済み Lv." + lv + " / 適用中 Lv." + activeOf(u)).withStyle(ChatFormatting.GRAY));
+        }
+        if (!maxed(u)) {
+            int cost = u.cost(lv);
+            boolean ok = data.points() >= cost;
+            lines.add(Component.literal("次のレベル: " + cost + "pt").withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.RED));
+            lines.add(Component.literal("購入分は次のワールドリセット後に適用").withStyle(ChatFormatting.DARK_GRAY));
+            lines.add(Component.literal(ok ? "クリックで購入" : "ポイントが足りません")
+                    .withStyle(ok ? ChatFormatting.YELLOW : ChatFormatting.RED));
+        } else {
+            lines.add(Component.literal("購入分は次のワールドリセット後に適用").withStyle(ChatFormatting.DARK_GRAY));
+        }
         return lines;
     }
 

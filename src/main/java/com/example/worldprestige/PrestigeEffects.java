@@ -106,7 +106,7 @@ public final class PrestigeEffects {
 
     private static void rescan(ServerLevel level) {
         boolean any = false;
-        for (Upgrade u : Upgrade.values()) if (SharedPrestige.getActiveLevel(u) > 0) any = true;
+        for (Upgrade u : Upgrade.values()) if (u.perLevel() > 0 && SharedPrestige.getActiveLevel(u) > 0) any = true;
         if (!any) {
             TARGETS.remove(level.dimension());
             return;
@@ -141,7 +141,7 @@ public final class PrestigeEffects {
         return switch (kind) {
             case KIND_MACHINE -> Upgrade.MACHINE;
             case KIND_MULTIBLOCK -> Upgrade.MULTIBLOCK;
-            default -> null;
+            default -> extraUpgrade(be);
         };
     }
 
@@ -164,6 +164,18 @@ public final class PrestigeEffects {
         if (is(c, "TileEntityInternalMultiblock") || is(c, "IInternalMultiblock")) return KIND_NONE;   // 構造の内部パーツ(ガラス・加熱要素等。本体の tick で動く)
         if (is(c, "TileEntityMultiblock") || is(c, "IMultiblock")) return KIND_MULTIBLOCK;  // マルチブロックの構成ブロック
         return KIND_MACHINE;
+    }
+
+    private static final Map<BlockEntityType<?>, Optional<Upgrade>> EXTRA = new ConcurrentHashMap<>();
+
+    /** Upgrade.java で matcher(対象の判定)を指定した強化。Upgrade に 1 行足すだけで、その機械が加速の対象になる。 */
+    private static Upgrade extraUpgrade(BlockEntity be) {
+        return EXTRA.computeIfAbsent(be.getType(), t -> {
+            for (Upgrade u : Upgrade.values()) {
+                if (u.matcher() != null && u.matcher().test(be)) return Optional.of(u);
+            }
+            return Optional.<Upgrade>empty();
+        }).orElse(null);
     }
 
     private static boolean is(Class<?> c, String simpleName) {
